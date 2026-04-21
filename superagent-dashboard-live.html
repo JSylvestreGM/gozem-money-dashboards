@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Superagent — Gozem Money</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.1.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        :root {
+            --core-primary-a: #179138;
+            --content-primary: #1a1a1a;
+            --content-secondary: #3a3a3a;
+            --content-tertiary: #6c6c6c;
+            --gray-100: #f2f2f2;
+            --gray-400: #b4b4b4;
+            --blue-50: #e2f1ff;
+            --blue-500: #0a67b1;
+            --blue-700: #063e6a;
+            --green-50: #e6f5ec;
+            --green-200: #80cc9c;
+            --green-500: #179138;
+            --green-600: #12742d;
+            --green-700: #0e5722;
+            --yellow-50: #fff6e5;
+            --yellow-110-alias: #f88f00;
+            --red-50: #fef2f2;
+            --red-500: #ef4444;
+            --red-600: #dc2626;
+            --red-700: #b91c1c;
+            --bg-page: #fafafa;
+            --bg-card: #ffffff;
+            --border-card: #e8e8e8;
+            --font-family: 'Inter', -apple-system, sans-serif;
+            --weight-medium: 500; --weight-semibold: 600; --weight-bold: 700; --weight-extrabold: 800;
+            --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px;
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-full: 9999px;
+            --shadow-sm: 0px 1px 3px rgba(0,0,0,0.06);
+            --duration-default: 200ms; --easing: cubic-bezier(0.4,0,0.2,1);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-family); font-size: 14px; color: var(--content-primary); background: var(--bg-page); min-height: 100vh; max-width: 430px; margin: 0 auto; }
+
+        .loading-screen { position: fixed; inset: 0; background: #0e5722; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; gap: var(--space-md); transition: opacity 0.4s; }
+        .loading-screen.hidden { opacity: 0; pointer-events: none; }
+        .loading-logo { width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800; color: white; }
+        .loading-text { color: white; font-size: 15px; font-weight: 600; }
+        .loading-sub { color: rgba(255,255,255,0.65); font-size: 12px; }
+        .spinner { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; margin-top: var(--space-sm); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error-screen { display: none; position: fixed; inset: 0; background: var(--bg-page); align-items: center; justify-content: center; flex-direction: column; gap: var(--space-md); padding: var(--space-lg); text-align: center; }
+        .error-screen.show { display: flex; }
+        .btn-retry { background: var(--green-500); color: white; border: none; border-radius: var(--radius-lg); padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+        .top-bar { background: #0e5722; padding: var(--space-md) var(--space-md) 0; position: sticky; top: 0; z-index: 200; }
+        .top-bar-inner { display: flex; align-items: center; justify-content: space-between; padding-bottom: var(--space-md); }
+        .logo-mark { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: white; }
+        .avatar-sm { width: 36px; height: 36px; border-radius: var(--radius-full); background: rgba(255,255,255,0.25); border: 2px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; color: white; }
+
+        .hero { background: linear-gradient(160deg, #0e5722 0%, #179138 100%); padding: var(--space-sm) var(--space-md) var(--space-lg); }
+        .hero-greeting { color: rgba(255,255,255,0.7); font-size: 12px; margin-bottom: 2px; }
+        .hero-name { color: white; font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+        .zone-pill { display: inline-flex; align-items: center; gap: var(--space-xs); background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: var(--radius-full); padding: 4px 10px; color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; margin-bottom: var(--space-md); }
+
+        .comm-today { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-sm); }
+        .comm-today-label { color: rgba(255,255,255,0.65); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--space-xs); display: flex; justify-content: space-between; }
+        .comm-today-date { background: rgba(255,255,255,0.15); border-radius: var(--radius-full); padding: 2px 8px; font-size: 10px; color: rgba(255,255,255,0.7); }
+        .comm-today-value { color: white; font-size: 34px; font-weight: 800; line-height: 1; }
+        .comm-breakdown { display: flex; gap: var(--space-xs); margin-top: var(--space-sm); }
+        .comm-chip { flex: 1; background: rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 6px 8px; text-align: center; }
+        .comm-chip-value { color: white; font-size: 14px; font-weight: 700; }
+        .comm-chip-label { color: rgba(255,255,255,0.6); font-size: 9px; margin-top: 1px; }
+
+        .hero-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-xs); }
+        .hero-mini { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: var(--radius-md); padding: 10px var(--space-sm); text-align: center; }
+        .hero-mini-value { color: white; font-size: 20px; font-weight: 800; }
+        .hero-mini-label { color: rgba(255,255,255,0.6); font-size: 10px; margin-top: 2px; line-height: 1.3; }
+
+        .bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: var(--bg-card); border-top: 1px solid var(--border-card); display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px 0; z-index: 200; box-shadow: 0px -4px 20px rgba(0,0,0,0.06); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; cursor: pointer; color: var(--content-tertiary); font-size: 9px; font-weight: 600; text-transform: uppercase; border: none; background: none; transition: color var(--duration-default); }
+        .nav-item i { font-size: 20px; }
+        .nav-item.active { color: var(--green-500); }
+
+        .content { padding: var(--space-md); padding-bottom: 90px; }
+        .section { display: none; }
+        .section.active { display: block; }
+        .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--content-tertiary); margin-bottom: var(--space-md); margin-top: var(--space-xs); }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: var(--space-md); overflow: hidden; }
+        .card-header { padding: var(--space-md) var(--space-md) 0; display: flex; align-items: center; justify-content: space-between; }
+        .card-title { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: var(--space-sm); }
+        .card-title i { color: var(--green-500); font-size: 17px; }
+        .card-body { padding: var(--space-md); }
+
+        .stats-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin-bottom: var(--space-md); }
+        .stat-mini { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: var(--radius-md); padding: var(--space-md); box-shadow: var(--shadow-sm); }
+        .stat-mini-icon { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 16px; margin-bottom: var(--space-sm); }
+        .stat-mini-icon.green { background: var(--green-50); color: var(--green-500); }
+        .stat-mini-icon.blue { background: var(--blue-50); color: var(--blue-500); }
+        .stat-mini-icon.yellow { background: var(--yellow-50); color: var(--yellow-110-alias); }
+        .stat-mini-icon.red { background: var(--red-50); color: var(--red-500); }
+        .stat-mini-value { font-size: 22px; font-weight: 800; line-height: 1; }
+        .stat-mini-label { font-size: 11px; color: var(--content-tertiary); margin-top: var(--space-xs); font-weight: 500; line-height: 1.3; }
+        .stat-mini-change { font-size: 10px; font-weight: 600; margin-top: var(--space-xs); }
+        .stat-mini-change.up { color: var(--green-500); }
+        .stat-mini-change.down { color: var(--red-500); }
+
+        .obj-card { background: linear-gradient(135deg, #0e5722, #179138); border-radius: var(--radius-lg); padding: var(--space-lg); margin-bottom: var(--space-md); color: white; }
+        .obj-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.65); margin-bottom: var(--space-sm); }
+        .obj-row { display: flex; align-items: flex-end; justify-content: space-between; }
+        .obj-current { font-size: 40px; font-weight: 800; line-height: 1; }
+        .obj-current-sub { font-size: 12px; color: rgba(255,255,255,0.65); margin-top: 2px; }
+        .obj-pct { font-size: 28px; font-weight: 800; }
+        .obj-target-label { font-size: 11px; color: rgba(255,255,255,0.65); }
+        .obj-bar-bg { height: 10px; background: rgba(255,255,255,0.2); border-radius: var(--radius-full); overflow: hidden; margin-top: var(--space-md); }
+        .obj-bar-fill { height: 100%; background: white; border-radius: var(--radius-full); transition: width 0.8s var(--easing); }
+        .obj-meta { display: flex; justify-content: space-between; margin-top: var(--space-sm); font-size: 11px; color: rgba(255,255,255,0.65); }
+
+        .agent-item { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-card); }
+        .agent-item:last-child { border-bottom: none; }
+        .agent-avatar { width: 36px; height: 36px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; flex-shrink: 0; }
+        .agent-info { flex: 1; min-width: 0; }
+        .agent-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .agent-sub { font-size: 11px; color: var(--content-tertiary); margin-top: 2px; }
+        .agent-right { text-align: right; flex-shrink: 0; }
+        .agent-score { font-size: 15px; font-weight: 800; }
+        .agent-score-label { font-size: 10px; color: var(--content-tertiary); }
+
+        .alert-dot { width: 8px; height: 8px; border-radius: var(--radius-full); flex-shrink: 0; }
+        .alert-dot.red { background: var(--red-500); }
+        .alert-dot.yellow { background: #ffa500; }
+
+        .badge { display: inline-flex; align-items: center; gap: 2px; padding: 2px 7px; border-radius: var(--radius-full); font-size: 10px; font-weight: 600; }
+        .badge-green { background: var(--green-50); color: var(--green-700); }
+        .badge-yellow { background: var(--yellow-50); color: var(--yellow-110-alias); }
+        .badge-red { background: var(--red-50); color: var(--red-700); }
+        .badge-blue { background: var(--blue-50); color: var(--blue-700); }
+
+        .filter-tabs { display: flex; gap: var(--space-xs); overflow-x: auto; padding-bottom: var(--space-sm); margin-bottom: var(--space-md); scrollbar-width: none; }
+        .filter-tabs::-webkit-scrollbar { display: none; }
+        .filter-tab { flex-shrink: 0; padding: 5px 12px; border-radius: var(--radius-full); font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--border-card); background: var(--bg-card); color: var(--content-tertiary); transition: all var(--duration-default); }
+        .filter-tab.active { background: var(--green-500); border-color: var(--green-500); color: white; }
+
+        .daily-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; padding-top: var(--space-sm); }
+        .daily-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+        .daily-bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 4px; }
+        .daily-bar.today { background: var(--green-500); }
+        .daily-bar.past { background: var(--green-200); }
+        .daily-bar-label { font-size: 9px; color: var(--content-tertiary); font-weight: 500; }
+        .daily-bar-val { font-size: 9px; color: var(--content-tertiary); font-weight: 600; }
+
+        .summary-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-card); }
+        .summary-row:last-child { border-bottom: none; }
+        .summary-label { font-size: 13px; color: var(--content-secondary); }
+        .summary-value { font-size: 13px; font-weight: 700; }
+
+        .comm-item { display: flex; align-items: center; gap: var(--space-md); padding: var(--space-sm) 0; border-bottom: 1px solid var(--border-card); }
+        .comm-item:last-child { border-bottom: none; }
+        .comm-icon { width: 38px; height: 38px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+        .comm-icon.today { background: var(--green-50); color: var(--green-500); }
+        .comm-icon.past { background: var(--blue-50); color: var(--blue-500); }
+        .comm-info { flex: 1; min-width: 0; }
+        .comm-desc { font-size: 13px; font-weight: 600; }
+        .comm-meta { font-size: 11px; color: var(--content-tertiary); margin-top: 2px; }
+        .comm-amount { text-align: right; flex-shrink: 0; }
+        .comm-amount-val { font-size: 14px; font-weight: 700; color: var(--green-600); }
+        .comm-amount-xof { font-size: 10px; color: var(--content-tertiary); }
+
+        .av-1{background:#f59e0b} .av-2{background:#8b5cf6} .av-3{background:#ef4444}
+        .av-4{background:#179138} .av-5{background:#0a67b1} .av-6{background:#10b981}
+        .av-7{background:#f43f5e} .av-8{background:#6366f1}
+    </style>
+</head>
+<body>
+
+<div class="loading-screen" id="loadingScreen">
+    <div class="loading-logo">G</div>
+    <div class="loading-text">Gozem Money</div>
+    <div class="loading-sub">Chargement de vos données…</div>
+    <div class="spinner"></div>
+</div>
+
+<div class="error-screen" id="errorScreen">
+    <i class="ri-wifi-off-line" style="font-size:48px;color:var(--red-500)"></i>
+    <div style="font-size:18px;font-weight:700">Impossible de charger</div>
+    <div style="font-size:13px;color:var(--content-tertiary)" id="errorMsg"></div>
+    <button class="btn-retry" onclick="location.reload()">Réessayer</button>
+</div>
+
+<div class="top-bar">
+    <div class="top-bar-inner">
+        <div style="display:flex;align-items:center;gap:var(--space-sm)">
+            <div class="logo-mark">G</div>
+            <div>
+                <div style="color:white;font-size:15px;font-weight:700">Superagent</div>
+                <div style="color:rgba(255,255,255,0.6);font-size:11px">Gozem Money</div>
+            </div>
+        </div>
+        <div class="avatar-sm" id="heroAvatar">--</div>
+    </div>
+</div>
+
+<div class="hero">
+    <div class="hero-greeting">Bonjour 👋</div>
+    <div class="hero-name" id="heroName">…</div>
+    <div class="zone-pill"><i class="ri-map-pin-2-line" style="font-size:11px"></i><span id="heroZone">…</span></div>
+
+    <div class="comm-today">
+        <div class="comm-today-label">
+            Commission du jour
+            <span class="comm-today-date" id="commDate">…</span>
+        </div>
+        <div style="margin-bottom:var(--space-sm)">
+            <span class="comm-today-value" id="commJour">—</span>
+            <span style="color:rgba(255,255,255,0.6);font-size:14px;font-weight:600"> XOF</span>
+        </div>
+        <div class="comm-breakdown">
+            <div class="comm-chip"><div class="comm-chip-value" id="commJourTotal">—</div><div class="comm-chip-label">clients activés</div></div>
+            <div class="comm-chip"><div class="comm-chip-value" id="commJourHigh">—</div><div class="comm-chip-label">dépôts ≥ 1 000F</div></div>
+            <div class="comm-chip"><div class="comm-chip-value" id="commJourLow">—</div><div class="comm-chip-label">dépôts 500–999F</div></div>
+        </div>
+    </div>
+
+    <div class="hero-row">
+        <div class="hero-mini"><div class="hero-mini-value" id="heroAgents">—</div><div class="hero-mini-label">Agents actifs</div></div>
+        <div class="hero-mini"><div class="hero-mini-value" id="heroClients">—</div><div class="hero-mini-label">Clients ce mois</div></div>
+        <div class="hero-mini"><div class="hero-mini-value" id="heroProg">—%</div><div class="hero-mini-label">Objectif atteint</div></div>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- ══ VUE GLOBALE ══ -->
+    <section class="section active" id="section-overview">
+        <div class="obj-card">
+            <div class="obj-label">Objectif collectif · <span id="objPeriode">…</span></div>
+            <div class="obj-row">
+                <div><div class="obj-current" id="objRealise">—</div><div class="obj-current-sub">clients activés</div></div>
+                <div style="text-align:right"><div class="obj-pct" id="objPct">—%</div><div class="obj-target-label">sur <span id="objTotal" style="color:white;font-weight:700">—</span></div></div>
+            </div>
+            <div class="obj-bar-bg"><div class="obj-bar-fill" id="objBar" style="width:0%"></div></div>
+            <div class="obj-meta"><span id="objMeta1">…</span><span id="objMeta2">…</span></div>
+        </div>
+
+        <div class="section-label">Indicateurs clés</div>
+        <div class="stats-grid-2" id="kpiGrid">
+            <div class="stat-mini"><div class="stat-mini-icon green"><i class="ri-user-received-line"></i></div><div class="stat-mini-value" id="kpi1">—</div><div class="stat-mini-label">Clients activés ce mois</div></div>
+            <div class="stat-mini"><div class="stat-mini-icon blue"><i class="ri-money-dollar-circle-line"></i></div><div class="stat-mini-value" id="kpi2">—</div><div class="stat-mini-label">Commission mois (XOF)</div></div>
+            <div class="stat-mini"><div class="stat-mini-icon yellow"><i class="ri-time-line"></i></div><div class="stat-mini-value" id="kpi3">—</div><div class="stat-mini-label">Agents sous objectif</div></div>
+            <div class="stat-mini"><div class="stat-mini-icon green"><i class="ri-shield-check-line"></i></div><div class="stat-mini-value" id="kpi4">—%</div><div class="stat-mini-label">Taux de validation</div></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="ri-line-chart-line"></i>Commissions · 7 derniers jours</div></div>
+            <div class="card-body">
+                <div style="font-size:22px;font-weight:800;margin-bottom:var(--space-sm)" id="chartTitle">— XOF <span style="font-size:12px;color:var(--content-tertiary);font-weight:400">aujourd'hui</span></div>
+                <div class="daily-chart" id="dailyChart"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><div class="card-title"><i class="ri-wallet-3-line"></i>Récap rémunération</div></div>
+            <div class="card-body" style="padding-top:var(--space-sm)">
+                <div class="summary-row"><div class="summary-label">Frais d'agence fixes</div><div class="summary-value" id="recapFixed">—</div></div>
+                <div class="summary-row"><div class="summary-label">Commissions variables</div><div class="summary-value" style="color:var(--green-600)" id="recapVar">—</div></div>
+                <div class="summary-row" style="background:var(--green-50);margin:0 -16px;padding:var(--space-sm) var(--space-md);border-radius:0 0 var(--radius-lg) var(--radius-lg)">
+                    <div class="summary-label" style="font-weight:700;color:var(--green-700)">Total estimé du mois</div>
+                    <div class="summary-value" style="font-size:15px;color:var(--green-700)" id="recapTotal">—</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══ AGENTS ══ -->
+    <section class="section" id="section-agents">
+        <div class="filter-tabs">
+            <div class="filter-tab active" onclick="filterAgents(this,'all')">Tous</div>
+            <div class="filter-tab" onclick="filterAgents(this,'top')">🏆 Tops</div>
+            <div class="filter-tab" onclick="filterAgents(this,'flop')">⚠️ À risque</div>
+        </div>
+        <div id="topsBlock">
+            <div class="section-label" style="color:var(--green-600)">🏆 Top performers</div>
+            <div class="card"><div class="card-body" style="padding-top:var(--space-sm)" id="topsList"></div></div>
+        </div>
+        <div id="flopsBlock">
+            <div class="section-label" style="color:var(--red-600)">⚠️ Agents à risque</div>
+            <div class="card"><div class="card-body" style="padding-top:var(--space-sm)" id="flopsList"></div></div>
+        </div>
+    </section>
+
+    <!-- ══ OBJECTIFS ══ -->
+    <section class="section" id="section-goals">
+        <div class="obj-card">
+            <div class="obj-label">Performance collective · <span id="goalPeriode">…</span></div>
+            <div class="obj-row">
+                <div><div class="obj-current" id="goalRealise">—</div><div class="obj-current-sub">clients activés</div></div>
+                <div style="text-align:right"><div class="obj-pct" id="goalPct">—%</div><div class="obj-target-label">sur <span id="goalTotal" style="color:white;font-weight:700">—</span></div></div>
+            </div>
+            <div class="obj-bar-bg"><div class="obj-bar-fill" id="goalBar" style="width:0%"></div></div>
+            <div class="obj-meta"><span id="goalMeta1">…</span><span id="goalMeta2">…</span></div>
+        </div>
+        <div class="card" id="bonusZoneCard" style="display:none">
+            <div class="card-header"><div class="card-title"><i class="ri-gift-line"></i>Bonus zone</div></div>
+            <div class="card-body" style="padding-top:var(--space-sm)" id="bonusZoneList"></div>
+        </div>
+    </section>
+
+    <!-- ══ COMMISSIONS ══ -->
+    <section class="section" id="section-commissions">
+        <div style="background:linear-gradient(135deg,#0e5722,#179138);border-radius:var(--radius-lg);padding:var(--space-lg);margin-bottom:var(--space-md);color:white">
+            <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.65);margin-bottom:var(--space-sm)">Total estimé · <span id="commPeriode">…</span></div>
+            <div style="font-size:36px;font-weight:800;line-height:1" id="commTotal">— <span style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.7)">XOF</span></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-xs);margin-top:var(--space-md)">
+                <div style="background:rgba(255,255,255,0.12);border-radius:var(--radius-sm);padding:8px;text-align:center">
+                    <div style="font-size:13px;font-weight:700;color:white" id="commFixedVal">—</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px">Frais fixes</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.12);border-radius:var(--radius-sm);padding:8px;text-align:center">
+                    <div style="font-size:13px;font-weight:700;color:white" id="commHighVal">—</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px">Comm. 200F</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.12);border-radius:var(--radius-sm);padding:8px;text-align:center">
+                    <div style="font-size:13px;font-weight:700;color:white" id="commLowVal">—</div>
+                    <div style="font-size:9px;color:rgba(255,255,255,0.6);margin-top:2px">Comm. 100F</div>
+                </div>
+            </div>
+        </div>
+        <div class="section-label">Détail par jour</div>
+        <div class="card"><div class="card-body" style="padding-top:var(--space-sm)" id="commHistList"></div></div>
+    </section>
+
+</div>
+
+<nav class="bottom-nav">
+    <button class="nav-item active" id="nav-overview" onclick="switchTab('overview')"><i class="ri-dashboard-line"></i>Vue globale</button>
+    <button class="nav-item" id="nav-agents" onclick="switchTab('agents')"><i class="ri-team-line"></i>Agents</button>
+    <button class="nav-item" id="nav-goals" onclick="switchTab('goals')"><i class="ri-focus-3-line"></i>Objectifs</button>
+    <button class="nav-item" id="nav-commissions" onclick="switchTab('commissions')"><i class="ri-money-dollar-circle-line"></i>Commissions</button>
+</nav>
+
+<script>
+const API_URL = "https://script.google.com/a/macros/gozem.co/s/AKfycby-uRu1qNoPWOpfnXQduoJSIJes5l4JxtaIyFa3a64pG8PKwEoH1VCJmmXzdafzHbGg/exec";
+const AV = ['av-1','av-2','av-3','av-4','av-5','av-6','av-7','av-8'];
+
+function getSaId() {
+    return new URLSearchParams(window.location.search).get('id') || 'SA001';
+}
+function fmt(n) { return Number(n||0).toLocaleString('fr-FR'); }
+function initials(nom) { return (nom||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(); }
+function av(i) { return AV[i % AV.length]; }
+
+let allAgents = [];
+
+function renderOverview(data) {
+    const d = data.dashboard;
+    const sa = data.superagent;
+    const comm = data.commissions;
+    const cj = data.commission_jour;
+
+    document.getElementById('heroName').textContent = sa.nom;
+    document.getElementById('heroAvatar').textContent = initials(sa.nom);
+    document.getElementById('heroZone').textContent = 'Zone ' + sa.zone + ' · ' + d.nb_agents + ' agents';
+    document.getElementById('heroAgents').textContent = d.agents_actifs;
+    document.getElementById('heroClients').textContent = d.total_clients_mois;
+    document.getElementById('heroProg').textContent = d.progression_pct + '%';
+
+    // Commission du jour
+    document.getElementById('commJour').textContent = fmt(cj.montant);
+    document.getElementById('commDate').textContent = cj.date;
+    document.getElementById('commJourTotal').textContent = cj.total_clients;
+    document.getElementById('commJourHigh').textContent = cj.clients_high;
+    document.getElementById('commJourLow').textContent = cj.clients_low;
+
+    // Objectif
+    const pct = Math.min(d.progression_pct, 100);
+    document.getElementById('objPeriode').textContent = data.periode;
+    document.getElementById('objRealise').textContent = data.objectifs.realise;
+    document.getElementById('objTotal').textContent = data.objectifs.collectif;
+    document.getElementById('objPct').textContent = pct + '%';
+    document.getElementById('objMeta1').textContent = data.objectifs.realise + ' / ' + data.objectifs.collectif + ' clients';
+    document.getElementById('objMeta2').textContent = data.objectifs.restant + ' restants';
+    setTimeout(() => { document.getElementById('objBar').style.width = pct + '%'; }, 100);
+
+    // KPIs
+    document.getElementById('kpi1').textContent = d.total_clients_mois;
+    document.getElementById('kpi2').textContent = fmt(comm.total_mois);
+    document.getElementById('kpi3').textContent = d.agents_a_risque;
+    document.getElementById('kpi4').textContent = d.taux_validation;
+
+    // Recap
+    document.getElementById('recapFixed').textContent = fmt(comm.frais_fixes) + ' XOF';
+    document.getElementById('recapVar').textContent = '+' + fmt(comm.variable_mois) + ' XOF';
+    document.getElementById('recapTotal').textContent = fmt(comm.total_mois) + ' XOF';
+    document.getElementById('chartTitle').innerHTML = fmt(cj.montant) + ' XOF <span style="font-size:12px;color:var(--content-tertiary);font-weight:400">aujourd\'hui</span>';
+
+    // Graphique 7j
+    const hist = comm.historique_7j || [];
+    const maxMontant = Math.max(...hist.map(h => h.montant), 1);
+    const chart = document.getElementById('dailyChart');
+    chart.innerHTML = hist.map((h, i) => {
+        const isToday = i === hist.length - 1;
+        const height = Math.max(Math.round((h.montant / maxMontant) * 65), 4);
+        return `<div class="daily-bar-wrap">
+            <div class="daily-bar-val">${(h.montant/1000).toFixed(1)}k</div>
+            <div class="daily-bar ${isToday ? 'today' : 'past'}" style="height:${height}px"></div>
+            <div class="daily-bar-label" style="${isToday ? 'color:var(--green-500)' : ''}">${h.jour}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderAgents(data) {
+    allAgents = data.agents.tous || [];
+    renderAgentList('all');
+}
+
+function renderAgentList(filter) {
+    const tops = document.getElementById('topsList');
+    const flops = document.getElementById('flopsList');
+    const topsBlock = document.getElementById('topsBlock');
+    const flopsBlock = document.getElementById('flopsBlock');
+
+    if (filter === 'flop') { topsBlock.style.display = 'none'; flopsBlock.style.display = 'block'; }
+    else if (filter === 'top') { topsBlock.style.display = 'block'; flopsBlock.style.display = 'none'; }
+    else { topsBlock.style.display = 'block'; flopsBlock.style.display = 'block'; }
+
+    const topAgents = allAgents.slice(0, 5);
+    const medals = ['🥇','🥈','🥉'];
+    tops.innerHTML = topAgents.map((a, i) => `
+        <div class="agent-item">
+            <div style="width:24px;font-size:${i<3?'16':'12'}px;text-align:center;flex-shrink:0">${medals[i]||i+1}</div>
+            <div class="agent-avatar ${av(i)}">${initials(a.nom_agent)}</div>
+            <div class="agent-info">
+                <div class="agent-name">${a.nom_agent}</div>
+                <div class="agent-sub">${a.nb_clients} clients · taux ${a.objectif>0?Math.round((a.nb_clients/a.objectif)*100):0}%</div>
+            </div>
+            <div class="agent-right">
+                <div class="agent-score" style="color:var(--green-600)">${fmt(a.commission)}</div>
+                <div class="agent-score-label">XOF</div>
+            </div>
+        </div>`).join('');
+
+    const flopAgents = allAgents.filter(a => a.progression_pct < 40);
+    flops.innerHTML = flopAgents.length ? flopAgents.map(a => {
+        const critical = a.nb_clients === 0 || a.statut === 'Inactif';
+        return `<div class="agent-item">
+            <div class="alert-dot ${critical ? 'red' : 'yellow'}"></div>
+            <div class="agent-avatar" style="background:var(--gray-400)">${initials(a.nom_agent)}</div>
+            <div class="agent-info">
+                <div class="agent-name">${a.nom_agent}</div>
+                <div class="agent-sub">${a.nb_clients} clients · objectif ${a.objectif}</div>
+            </div>
+            <span class="badge ${critical ? 'badge-red' : 'badge-yellow'}">${a.nb_clients === 0 ? 'Inactif' : a.progression_pct + '%'}</span>
+        </div>`;
+    }).join('') : '<div style="text-align:center;padding:var(--space-lg);color:var(--content-tertiary)"><i class="ri-check-double-line" style="font-size:32px;color:var(--green-500)"></i><div style="margin-top:var(--space-sm)">Aucun agent à risque 🎉</div></div>';
+}
+
+function renderGoals(data) {
+    const obj = data.objectifs;
+    const pct = Math.min(obj.progression, 100);
+    document.getElementById('goalPeriode').textContent = data.periode;
+    document.getElementById('goalRealise').textContent = obj.realise;
+    document.getElementById('goalTotal').textContent = obj.collectif;
+    document.getElementById('goalPct').textContent = pct + '%';
+    document.getElementById('goalMeta1').textContent = obj.realise + ' / ' + obj.collectif + ' clients';
+    document.getElementById('goalMeta2').textContent = obj.restant + ' restants';
+    setTimeout(() => { document.getElementById('goalBar').style.width = pct + '%'; }, 100);
+
+    if (obj.bonus_zone && obj.bonus_zone.length) {
+        document.getElementById('bonusZoneCard').style.display = 'block';
+        document.getElementById('bonusZoneList').innerHTML = obj.bonus_zone.map(b => `
+            <div style="display:flex;align-items:center;gap:var(--space-md);padding:var(--space-sm) 0;border-bottom:1px solid var(--border-card)">
+                <div style="font-size:22px">${b.debloque ? '⭐' : '🔒'}</div>
+                <div style="flex:1">
+                    <div style="font-size:13px;font-weight:600">${b.libelle}</div>
+                    <div style="font-size:11px;color:${b.debloque ? 'var(--green-600)' : 'var(--content-tertiary)'};margin-top:2px">${b.debloque ? '✅ Atteint' : obj.restant + ' clients restants'}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:14px;font-weight:800;color:${b.debloque ? 'var(--yellow-110-alias)' : 'var(--gray-400)'}">${fmt(b.montant)}</div>
+                    <div style="font-size:10px;color:var(--content-tertiary)">XOF</div>
+                </div>
+            </div>`).join('');
+    }
+}
+
+function renderCommissions(data) {
+    const comm = data.commissions;
+    document.getElementById('commPeriode').textContent = data.periode;
+    document.getElementById('commTotal').innerHTML = fmt(comm.total_mois) + ' <span style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.7)">XOF</span>';
+    document.getElementById('commFixedVal').textContent = fmt(comm.frais_fixes);
+    const highComm = (data.dashboard.clients_high||0) * 200;
+    const lowComm  = (data.dashboard.clients_low||0) * 100;
+    document.getElementById('commHighVal').textContent = fmt(highComm);
+    document.getElementById('commLowVal').textContent = fmt(lowComm);
+
+    const hist = comm.historique_7j || [];
+    document.getElementById('commHistList').innerHTML = hist.slice().reverse().map((h, i) => `
+        <div class="comm-item">
+            <div class="comm-icon ${i === 0 ? 'today' : 'past'}"><i class="ri-calendar-${i===0?'check':''}line"></i></div>
+            <div class="comm-info">
+                <div class="comm-desc">${i === 0 ? 'Aujourd\'hui · ' : ''}${h.date}</div>
+                <div class="comm-meta">${h.clients} clients activés · ${h.jour}</div>
+            </div>
+            <div class="comm-amount">
+                <div class="comm-amount-val">+${fmt(h.montant)}</div>
+                <div class="comm-amount-xof">XOF</div>
+            </div>
+        </div>`).join('');
+}
+
+async function loadData() {
+    const saId = getSaId();
+    try {
+        const res = await fetch(`${API_URL}?role=superagent&id=${saId}`);
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        renderOverview(data);
+        renderAgents(data);
+        renderGoals(data);
+        renderCommissions(data);
+
+        document.getElementById('loadingScreen').classList.add('hidden');
+    } catch (err) {
+        document.getElementById('loadingScreen').classList.add('hidden');
+        document.getElementById('errorMsg').textContent = err.message;
+        document.getElementById('errorScreen').classList.add('show');
+    }
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('section-' + tab).classList.add('active');
+    document.getElementById('nav-' + tab).classList.add('active');
+}
+
+function filterAgents(el, filter) {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderAgentList(filter);
+}
+
+loadData();
+</script>
+</body>
+</html>
